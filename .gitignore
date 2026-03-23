@@ -1,0 +1,58 @@
+# ─────────────────────────────────────────────
+#  Zubair AI Agent — .gitignore
+#  NEVER commit .env — your secrets stay local
+# ─────────────────────────────────────────────
+
+# ✅ Environment variables — NEVER push this
+.env
+.env.local
+.env.development
+.env.production
+.env.staging
+.env.test
+.env*.local
+
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+
+# Logs
+logs/
+*.log
+*.log.*
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+desktop.ini
+
+# Editor / IDE
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.history/
+
+# Build output
+dist/
+build/
+out/
+.next/
+
+# Vercel
+.vercel/
+
+# Temp files
+tmp/
+temp/
+*.tmp
+*.bak
+*.swp
