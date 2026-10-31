@@ -56,3 +56,9 @@ temp/
 *.tmp
 *.bak
 *.swp
+.env
+.env.*
+!.env.example
+firebase-service-account.json
+*service-account*.json
+chatbot-import/
