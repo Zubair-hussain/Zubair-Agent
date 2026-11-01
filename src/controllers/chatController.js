@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from "uuid";
 import { detectIntent } from "../engine/intentEngine.js";
 import { buildResponse } from "../engine/responseBuilder.js";
 import { searchWeb, formatSearchResults } from "../handlers/searchHandler.js";
+import { askAgent } from "../ai/agent.js";
 
 // Session store: sessionId -> { history, createdAt }
 const sessions = new Map();
@@ -23,8 +24,11 @@ export const chatHandler = async (req, res, next) => {
 
     const intent = detectIntent(trimmed);
     let reply;
+    const ai = await askAgent(trimmed, session.history);
 
-    if (intent === "search") {
+    if (ai) {
+      reply = ai.reply;
+    } else if (intent === "search") {
       try {
         const results = await searchWeb(trimmed);
         reply = formatSearchResults(results, trimmed);
@@ -41,7 +45,7 @@ export const chatHandler = async (req, res, next) => {
       session.history = session.history.slice(-MAX_HISTORY);
     }
 
-    res.json({ success: true, sessionId: sid, intent, reply, timestamp: new Date().toISOString() });
+    res.json({ success: true, sessionId: sid, intent, reply, source: ai?.source || "rules", handoff: Boolean(ai?.handoff), timestamp: new Date().toISOString() });
   } catch (err) {
     next(err);
   }
@@ -71,10 +75,5 @@ export const statsHandler = (_req, res) => {
   res.json({
     success: true,
     activeSessions: sessions.size,
-    sessions: [...sessions.keys()].map((id) => ({
-      id,
-      turns: Math.floor(sessions.get(id).history.length / 2),
-      age: Math.round((Date.now() - sessions.get(id).createdAt) / 1000) + "s",
-    })),
   });
 };
