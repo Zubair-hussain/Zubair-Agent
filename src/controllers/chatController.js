@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from "uuid";
 import { detectIntent } from "../engine/intentEngine.js";
 import { buildResponse } from "../engine/responseBuilder.js";
 import { searchWeb, formatSearchResults } from "../handlers/searchHandler.js";
-import { askAgent } from "../ai/agent.js";
+import { askAgent, HANDOFF_REPLY } from "../ai/agent.js";
 
 // Session store: sessionId -> { history, createdAt }
 const sessions = new Map();
@@ -28,6 +28,8 @@ export const chatHandler = async (req, res, next) => {
 
     if (ai) {
       reply = ai.reply;
+    } else if (intent === "unknown") {
+      reply = HANDOFF_REPLY;
     } else if (intent === "search") {
       try {
         const results = await searchWeb(trimmed);
@@ -56,6 +58,7 @@ export const chatHandler = async (req, res, next) => {
  */
 export const historyHandler = (req, res) => {
   const session = sessions.get(req.params.sessionId);
+  // Session ids are the only credential, so they must be unguessable.
   if (!session) return res.status(404).json({ success: false, error: "Session not found." });
   res.json({ success: true, sessionId: req.params.sessionId, history: session.history });
 };
