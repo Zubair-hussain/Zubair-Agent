@@ -17,7 +17,7 @@ const callModel = async (messages) => {
     method: "POST",
     headers: { Authorization: `Bearer ${process.env.HF_API_KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: process.env.HF_MODEL || "meta-llama/Llama-3.3-70B-Instruct",
+      model: process.env.HF_MODEL || "meta-llama/Llama-3.1-8B-Instruct",
       messages,
       max_tokens: 400,
       temperature: 0.3,
