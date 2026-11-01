@@ -1,7 +1,7 @@
 name: CI
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
   pull_request:
 
 permissions:
@@ -18,5 +18,6 @@ jobs:
       - run: npm install --no-audit --no-fund
       - name: Check syntax
         run: find src -name '*.js' -print0 | xargs -0 -n1 node --check
+      - run: npm test
       - name: Check the server loads
         run: timeout 5 node src/index.js || test $? -eq 124
