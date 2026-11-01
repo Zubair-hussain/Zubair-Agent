@@ -4,6 +4,7 @@ import cors from "cors";
 import helmet from "helmet";
 import { globalLimiter, errorHandler, notFound } from "./middleware/index.js";
 import routes from "./routes/index.js";
+import mcpRoutes from "./routes/mcp.js";
 import { getPKTNow } from "./utils/timezone.js";
 
 const app = express();
@@ -36,7 +37,7 @@ app.get("/api", (_req, res) => {
     version: "2.0.0",
     description: "Custom AI agent for Syed Zubair Hussain Shah — Xovato Digital Agency",
     serverTime: getPKTNow() + " (PKT)",
-    noExternalAI: true,
+    model: "Hugging Face",
     endpoints: {
       "POST /api/chat":                  "Chat with the agent. Body: { message, sessionId? }",
       "GET  /api/chat/history/:sid":     "Get conversation history for a session",
@@ -52,7 +53,7 @@ app.get("/api", (_req, res) => {
     links: {
       portfolio:  "https://zubair-hussain-shah.vercel.app",
       github:     "https://github.com/Zubair-hussain",
-      linkedin:   "https://www.linkedin.com/in/syed-zubair-hussain-shah-491294376",
+      linkedin:   "https://www.linkedin.com/in/zubairhussain123",
       notion:     "https://www.notion.so/Zubair-Hussain-Full-Stack-Developer-3278c7707d0180b784a2d7807e6157c4",
       whatsapp:   "https://wa.me/923110302103",
     },
@@ -61,6 +62,7 @@ app.get("/api", (_req, res) => {
 
 // ── API Routes ────────────────────────────────────────────────────────────────
 app.use("/api", routes);
+app.use("/mcp", mcpRoutes);
 
 // ── 404 & Error ───────────────────────────────────────────────────────────────
 app.use(notFound);
@@ -73,7 +75,7 @@ if (process.env.NODE_ENV !== "test") {
     console.log("║        Zubair AI Agent v2.0 — Started               ║");
     console.log(`║  Port     : ${PORT}                                    ║`);
     console.log(`║  Time     : ${getPKTNow().slice(0, 22)} (PKT)   ║`);
-    console.log("║  Engine   : Custom (no external AI API)             ║");
+    console.log("║  Engine   : Hugging Face + rules fallback           ║");
     console.log("║  Author   : Syed Zubair Hussain Shah — Xovato       ║");
     console.log("╚══════════════════════════════════════════════════════╝");
   });
