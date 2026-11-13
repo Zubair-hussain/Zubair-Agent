@@ -39,6 +39,9 @@ class MemoryStore {
   async get(key) {
     return this.#get(key)?.value ?? null;
   }
+  async mget(keys) {
+    return keys.map((k) => this.#get(k)?.value ?? null);
+  }
   async set(key, value, ttlSeconds) {
     this.data.set(key, { value: String(value), expiresAt: ttlSeconds ? Date.now() + ttlSeconds * 1000 : 0 });
   }
@@ -124,6 +127,10 @@ class UpstashStore {
 
   get(key) {
     return this.#cmd("GET", key);
+  }
+  /** Many keys in ONE command — keeps usage inside Upstash's free tier. */
+  async mget(keys) {
+    return keys.length ? this.#cmd("MGET", ...keys) : [];
   }
   set(key, value, ttlSeconds) {
     return ttlSeconds ? this.#cmd("SET", key, String(value), "EX", ttlSeconds) : this.#cmd("SET", key, String(value));
