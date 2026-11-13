@@ -11,7 +11,8 @@
  *                  emerald | teal | slate | black   — or any hex like "#0ea5e9"
  *   data-mode      light (default) | dark
  *   data-position  right (default) | left
- *   data-name      the human operator's name shown in the header
+ *   data-name      the human operator's first name             (default "Zubair")
+ *   data-fullname  full name used in the greeting               (default data-name)
  *   data-title     header title             (default "Hi there 👋")
  *   data-avatar    https URL of the operator's photo
  *   data-quick     quick replies, separated by "|"
@@ -30,6 +31,7 @@
   var cfg = script.dataset || {};
   var STORE = "zcw:" + API;
   var NAME = (cfg.name || "Zubair").slice(0, 40);
+  var FULLNAME = (cfg.fullname || NAME).slice(0, 60);
   var QUICK = (cfg.quick || "What do you offer?|Pricing|Book a call").split("|").map(function (q) { return q.trim().slice(0, 40); }).filter(Boolean).slice(0, 5);
   var COLORS = ["blue", "indigo", "violet", "pink", "crimson", "orange", "amber", "emerald", "teal", "slate", "black"];
 
@@ -55,6 +57,12 @@
   }
   function load() { try { return JSON.parse(localStorage.getItem(STORE) || "{}") || {}; } catch (e) { return {}; } }
   function save(patch) { try { localStorage.setItem(STORE, JSON.stringify(patch === null ? {} : Object.assign(load(), patch))); } catch (e) { /* storage blocked */ } }
+  function since(ms) {
+    var m = Math.max(1, Math.round((Date.now() - ms) / 60000));
+    if (m < 60) return m + "m ago";
+    var hrs = Math.round(m / 60);
+    return hrs < 24 ? hrs + "h ago" : Math.round(hrs / 24) + "d ago";
+  }
   function clock(ms) { return new Date(ms).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }); }
 
   // Safe rich text: **bold**, http(s) links, emails. Built from text nodes only.
@@ -119,18 +127,28 @@
 
   var head = h("header", "zcw-head");
   var top = h("div", "zcw-head-top");
+  // Two clickable avatars: pick who you're talking to (AI by default).
   var team = h("div", "zcw-team");
+  team.setAttribute("role", "tablist");
+  team.setAttribute("aria-label", "Who do you want to talk to?");
   var humanAv = avatar("zubair", false);
-  team.appendChild(humanAv);
-  team.appendChild(avatar("ai"));
+  var aiBtn = h("button", "zcw-pick"); aiBtn.type = "button"; aiBtn.setAttribute("role", "tab");
+  aiBtn.setAttribute("aria-label", "Talk to the AI assistant"); aiBtn.title = "AI assistant: instant answers";
+  aiBtn.appendChild(avatar("ai"));
+  var humanBtn = h("button", "zcw-pick"); humanBtn.type = "button"; humanBtn.setAttribute("role", "tab");
+  humanBtn.setAttribute("aria-label", "Talk to " + FULLNAME); humanBtn.title = FULLNAME;
+  humanBtn.appendChild(humanAv);
+  team.appendChild(aiBtn);
+  team.appendChild(humanBtn);
   var closeBtn = h("button", "zcw-x"); closeBtn.type = "button"; closeBtn.setAttribute("aria-label", "Close chat"); closeBtn.appendChild(icon("close"));
   top.appendChild(team); top.appendChild(closeBtn);
   var title = h("h2", "zcw-title", (cfg.title || "Hi there 👋").slice(0, 60));
+  var who = h("p", "zcw-who");
   var sub = h("p", "zcw-sub");
   var subDot = h("span", "zcw-dot");
   var subText = h("span", "", "Ask us anything — we're here to help");
   sub.appendChild(subDot); sub.appendChild(subText);
-  head.appendChild(top); head.appendChild(title); head.appendChild(sub);
+  head.appendChild(top); head.appendChild(title); head.appendChild(who); head.appendChild(sub);
 
   var body = h("div", "zcw-body");
   body.setAttribute("aria-live", "polite");
@@ -155,6 +173,44 @@
   // ── State & rendering ───────────────────────────────────────────────────
   var messages = [{ author: "ai", text: "Hi! 👋 I'm the AI assistant. Ask me anything — or tap \"Talk to " + NAME + "\" and " + NAME + " will join this chat.", at: Date.now(), welcome: true }];
   var open = false, sending = false, typing = false, unread = 0, status = null, askEmail = false;
+  var agent = load().agent === "zubair" ? "zubair" : "ai";
+
+  function lastActive() {
+    if (status && status.online) return "Active now";
+    if (status && status.lastSeenAt) return "Active " + since(status.lastSeenAt);
+    return "Usually replies " + ((status && status.replyTime) || "within 1 hour");
+  }
+
+  function paintAgent() {
+    var human = agent === "zubair";
+    aiBtn.setAttribute("aria-selected", String(!human));
+    humanBtn.setAttribute("aria-selected", String(human));
+    who.textContent = human ? "Chatting with " + FULLNAME : "Chatting with the AI assistant";
+    subText.textContent = human ? lastActive() : "Instant answers · tap " + NAME + "'s photo to talk to " + NAME;
+    input.placeholder = human ? "Message " + NAME + "…" : "Ask the AI anything…";
+  }
+
+  /** Switch who the visitor is talking to. */
+  function switchTo(next, opts) {
+    opts = opts || {};
+    if (next === agent && !opts.force) return;
+    agent = next;
+    save({ agent: agent });
+    if (agent === "zubair") {
+      messages.push({
+        author: "zubair",
+        text: "Hi there, I'm " + FULLNAME + " 👋 Thanks for reaching out. Tell me what you need and I'll reply right here.",
+        at: Date.now(), greeting: true
+      });
+    } else {
+      messages.push({ author: "ai", text: "You're back with the AI assistant ✨ Ask me anything and I'll answer instantly.", at: Date.now(), greeting: true });
+    }
+    if (token && !opts.serverDone) api("/agent", "POST", { agent: agent }).then(function (r) { if (r.ok) setStatus(r.data.status); }).catch(function () {});
+    paintAgent();
+    render();
+  }
+  aiBtn.onclick = function () { switchTo("ai"); };
+  humanBtn.onclick = function () { switchTo("zubair"); };
 
   function setStatus(s) {
     if (!s) return;
@@ -163,8 +219,11 @@
     subDot.className = "zcw-dot" + (on ? " on" : "");
     footDot.className = "zcw-dot" + (on ? " on" : "");
     humanAv.querySelector(".zcw-pres").className = "zcw-pres" + (on ? " on" : "");
-    subText.textContent = on ? NAME + " is online" : "We typically reply " + (s.replyTime || "within 1 hour");
-    footText.textContent = on ? NAME + " is active now" : NAME + " was active recently · replies " + (s.replyTime || "within 1 hour");
+    var reply = s.replyTime || "within 1 hour";
+    footText.textContent = on ? NAME + " is active now"
+      : s.lastSeenAt ? NAME + " was active " + since(s.lastSeenAt) + " · replies " + reply
+      : NAME + " usually replies " + reply;
+    paintAgent();
   }
 
   function render() {
@@ -185,11 +244,12 @@
       var b = h("div", "zcw-bubble" + (me ? " me" : m.author === "ai" ? " ai" : "") + (m.pending ? " pending" : ""));
       if (me) b.textContent = m.text; else rich(b, m.text);
       stack.appendChild(b);
-      if (last && !m.welcome && !m.pending) stack.appendChild(h("span", "zcw-time", clock(m.at)));
+      if (m.greeting && m.author === "zubair") stack.appendChild(h("span", "zcw-time", FULLNAME + " · " + lastActive()));
+      else if (last && !m.welcome && !m.pending) stack.appendChild(h("span", "zcw-time", clock(m.at)));
       row.appendChild(stack);
       body.appendChild(row);
     });
-    if (typing || sending) {
+    if (typing || (sending && agent === "ai")) {
       var tr = h("div", "zcw-row first");
       tr.appendChild(avatar(typing ? "zubair" : "ai"));
       var tb = h("div", "zcw-bubble" + (typing ? "" : " ai"));
@@ -255,8 +315,8 @@
     messages.push({ author: "visitor", text: text, at: Date.now(), pending: true });
     sending = true; render();
     var req = token
-      ? api("/messages", "POST", { text: text })
-      : api("/conversations", "POST", { text: text, page: location.pathname.slice(0, 200) });
+      ? api("/messages", "POST", { text: text, agent: agent })
+      : api("/conversations", "POST", { text: text, agent: agent, page: location.pathname.slice(0, 200) });
     req.then(function (r) {
       if (token && (r.status === 401 || r.status === 404)) { token = null; lastId = 0; save(null); sending = false; messages.pop(); return send(text); }
       if (r.status === 429) messages = messages.filter(function (m) { return !m.pending; }).concat([{ author: "ai", text: "You're sending messages quickly — please wait a moment.", at: Date.now() }]);
@@ -264,6 +324,8 @@
       if (r.data.token) { token = r.data.token; save({ token: token }); }
       absorb(r.data.messages, false);
       setStatus(r.data.status);
+      // The visitor asked the AI for a human: hand straight over to Zubair.
+      if (r.data.handoff) switchTo("zubair", { serverDone: true, force: agent !== "zubair" });
       var s = load();
       if (!s.identified && !s.emailDismissed) askEmail = true;
     }).catch(function () {
@@ -274,7 +336,9 @@
 
   // ── Events ──────────────────────────────────────────────────────────────
   QUICK.concat(["Talk to " + NAME]).forEach(function (q) {
-    var b = h("button", "", q); b.type = "button"; b.onclick = function () { send(q); }; quick.appendChild(b);
+    var b = h("button", "", q); b.type = "button";
+    b.onclick = q === "Talk to " + NAME ? function () { switchTo("zubair"); } : function () { send(q); };
+    quick.appendChild(b);
   });
 
   function toggle(state) {
@@ -317,6 +381,7 @@
     document.head.appendChild(css);
     document.body.appendChild(root);
     setStatus({ online: false, replyTime: "within 1 hour" });
+    paintAgent();
     if (token) poll();
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", mount); else mount();
