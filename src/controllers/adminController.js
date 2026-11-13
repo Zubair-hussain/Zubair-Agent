@@ -98,9 +98,11 @@ const withConversation = (handler) => async (req, res, next) => {
 
 // GET /api/admin/conversations/:id?after=<lastId> — opening a thread marks it read.
 export const threadHandler = withConversation(async (req, res, meta) => {
-  const after = Number(req.query.after);
+  const raw = Number(req.query.after);
+  const after = Number.isSafeInteger(raw) && raw > 0 ? raw : 0;
+  const hasNew = !meta.lastId || meta.lastId > after;
   const [messages, typing] = await Promise.all([
-    getMessages(meta.id, Number.isSafeInteger(after) && after > 0 ? after : 0),
+    hasNew ? getMessages(meta.id, after) : [],
     isTyping(meta.id, "visitor"),
   ]);
   const conversation = meta.unread ? await updateConversation(meta.id, { unread: 0 }) : meta;
