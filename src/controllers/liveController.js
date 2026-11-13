@@ -28,17 +28,20 @@ const handleVisitorMessage = async (req, meta, text) => {
   const created = [visitorMessage];
 
   // The AI steps aside while Zubair is actively replying in this conversation.
-  const aiActive = meta.aiEnabled && Date.now() > (meta.aiPausedUntil || 0);
+  let aiActive = meta.aiEnabled && Date.now() > (meta.aiPausedUntil || 0);
   let handoff = false;
 
   if (aiActive) {
     const result = await generateReply(text, { lastIntent: meta.lastIntent, adminOnline: status.online });
-    handoff = result.handoff;
-    const aiMessage = await addMessage(meta.id, "ai", result.reply, {
-      lastIntent: result.intent,
-      ...(handoff ? { handoff: true } : {}),
-    });
-    created.push(aiMessage);
+    if (result.handoff) {
+      // "Talk to Zubair" → switch this conversation straight to the human.
+      // The widget shows Zubair's greeting; the AI stays out of the thread.
+      handoff = true;
+      aiActive = false;
+      await updateConversation(meta.id, { aiEnabled: false, handoff: true, lastIntent: result.intent });
+    } else {
+      created.push(await addMessage(meta.id, "ai", result.reply, { lastIntent: result.intent }));
+    }
   }
 
   // Alert Zubair. Awaited on purpose: a serverless function may be frozen the
@@ -64,7 +67,15 @@ const handleVisitorMessage = async (req, meta, text) => {
     }
   }
 
-  return { created, status, aiActive };
+  return { created, status, aiActive, handoff };
+};
+
+/** Apply the visitor's choice of who they talk to: "ai" or "zubair". */
+const applyAgent = async (meta, agent) => {
+  if (agent !== "ai" && agent !== "zubair") return meta;
+  const wantAi = agent === "ai";
+  if (meta.aiEnabled === wantAi) return meta;
+  return updateConversation(meta.id, { aiEnabled: wantAi, aiPausedUntil: 0, handoff: !wantAi });
 };
 
 // GET /api/live/status — public, tiny, cacheable.
@@ -83,8 +94,9 @@ export const startConversationHandler = async (req, res, next) => {
     const text = readText(req);
     if (!text) return res.status(400).json({ success: false, error: "Message is required." });
 
-    const meta = await createConversation({ page: cleanLine(req.body?.page, 200) });
-    const { created, status, aiActive } = await handleVisitorMessage(req, meta, text);
+    const fresh = await createConversation({ page: cleanLine(req.body?.page, 200) });
+    const meta = await applyAgent(fresh, req.body?.agent);
+    const { created, status, aiActive, handoff } = await handleVisitorMessage(req, meta, text);
 
     res.status(201).json({
       success: true,
@@ -93,6 +105,7 @@ export const startConversationHandler = async (req, res, next) => {
       messages: created,
       status,
       aiActive,
+      handoff,
     });
   } catch (err) {
     next(err);
@@ -105,11 +118,12 @@ export const sendMessageHandler = async (req, res, next) => {
     const text = readText(req);
     if (!text) return res.status(400).json({ success: false, error: "Message is required." });
 
-    const meta = await getConversation(req.conversationId);
-    if (!meta) return notFound(res);
+    const current = await getConversation(req.conversationId);
+    if (!current) return notFound(res);
+    const meta = await applyAgent(current, req.body?.agent);
 
-    const { created, status, aiActive } = await handleVisitorMessage(req, meta, text);
-    res.status(201).json({ success: true, messages: created, status, aiActive });
+    const { created, status, aiActive, handoff } = await handleVisitorMessage(req, meta, text);
+    res.status(201).json({ success: true, messages: created, status, aiActive, handoff });
   } catch (err) {
     next(err);
   }
@@ -165,6 +179,30 @@ export const typingHandler = async (req, res, next) => {
   try {
     await setTyping(req.conversationId, "visitor");
     res.status(204).end();
+  } catch (err) {
+    next(err);
+  }
+};
+
+// POST /api/live/agent  { agent: "ai" | "zubair" } — visitor taps an avatar to switch.
+export const agentHandler = async (req, res, next) => {
+  try {
+    const agent = req.body?.agent;
+    if (agent !== "ai" && agent !== "zubair") {
+      return res.status(400).json({ success: false, error: 'agent must be "ai" or "zubair".' });
+    }
+    const meta = await getConversation(req.conversationId);
+    if (!meta) return notFound(res);
+    const switchedToHuman = agent === "zubair" && meta.aiEnabled;
+    await applyAgent(meta, agent);
+    if (switchedToHuman) {
+      await notifyAdmin({
+        title: `🙋 ${meta.name || meta.email || "A visitor"} wants to talk to you`,
+        body: meta.preview || "Open the inbox to reply.",
+        conversationId: meta.id,
+      });
+    }
+    res.json({ success: true, agent, status: await getStatus() });
   } catch (err) {
     next(err);
   }
