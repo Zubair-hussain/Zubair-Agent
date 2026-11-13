@@ -44,7 +44,8 @@ Zubair Chat gives you the same experience on infrastructure you own:
 
 - **One thread, three voices** — the visitor, the **AI assistant** (sparkle avatar + `AI` chip) and **you** (your initial or photo). Nobody is confused about who is talking.
 - **Instant AI answers** from your own knowledge base — no external AI API, no quota, no bill.
-- **"Talk to a human"** — one tap flags the chat and pings your devices.
+- **Pick who to talk to** — tap the AI's avatar or yours in the header, just like a team of agents. The AI is selected by default.
+- **"Talk to a human"** — ask the AI for you (or tap your photo) and the chat switches straight to you, with your greeting ("Hi there, I'm Zubair Hussain 👋") and when you were last active.
 - **Presence** — "Online now" while your inbox is open, otherwise "We typically reply within 1 hour".
 - **AI steps aside** for 10 minutes whenever you reply (or switch it off per conversation).
 - **Email capture** — if you're away, visitors can leave an email so they don't miss your reply.
@@ -72,6 +73,7 @@ Then add your site to `ALLOWED_ORIGINS` (see [Deploy](#-deploy-free-on-vercel)).
 | `data-mode` | `light` `dark` | `light` |
 | `data-position` | `right` `left` | `right` |
 | `data-name` | the human operator's name | `Zubair` |
+| `data-fullname` | full name used in your greeting | same as `data-name` |
 | `data-title` | header title | `Hi there 👋` |
 | `data-avatar` | https URL of your photo | your initial |
 | `data-quick` | quick replies separated by `\|` | `What do you offer?\|Pricing\|Book a call` |
