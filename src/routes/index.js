@@ -8,7 +8,7 @@ import {
   pricingHandler, timezoneHandler, searchHandler,
 } from "../controllers/index.js";
 import {
-  identifyHandler, pollMessagesHandler, sendMessageHandler,
+  agentHandler, identifyHandler, pollMessagesHandler, sendMessageHandler,
   startConversationHandler, statusHandler, typingHandler,
 } from "../controllers/liveController.js";
 import {
@@ -93,6 +93,7 @@ router.post(
   sendMessageHandler
 );
 router.post("/live/identify", requireVisitor, rateLimit("live-identify", 6, HOUR, byConversation), identifyHandler);
+router.post("/live/agent", requireVisitor, rateLimit("live-agent", 20, HOUR, byConversation), agentHandler);
 router.post("/live/typing", requireVisitor, rateLimit("live-typing", 30, MINUTE, byConversation), typingHandler);
 
 // Stateless AI + utilities
