@@ -239,9 +239,9 @@
   async function refreshList() {
     try {
       // `active=1` doubles as the presence heartbeat → visitors see "Online".
-      const data = await api("/conversations" + (document.hidden ? "" : "?active=1"));
+      const data = await api("/conversations" + (isActive() ? "?active=1" : ""));
       state.conversations = data.conversations;
-      el.presence.textContent = document.hidden ? "Away — visitors see your usual reply time" : "You appear online to visitors";
+      el.presence.textContent = isActive() ? "You appear online to visitors" : "Away — visitors see your usual reply time";
       announce(data.unreadTotal);
       renderList();
     } catch {
@@ -370,11 +370,29 @@
   });
 
   // ── Polling (fast while visible, slow in the background) ────────────────
+  // Fast while you're actually here; slow when the tab is hidden or you've
+  // been idle for 10 minutes (keeps Redis usage inside the free tier, and
+  // visitors then see your usual reply time instead of "online").
+  var lastActivity = Date.now();
+  var IDLE_MS = 10 * 60 * 1000;
+  function isActive() { return !document.hidden && Date.now() - lastActivity < IDLE_MS; }
+  ["mousemove", "keydown", "click", "touchstart", "focus"].forEach(function (type) {
+    window.addEventListener(type, function () {
+      var wasIdle = !isActive();
+      lastActivity = Date.now();
+      if (wasIdle && state.me) { schedule(); refreshList(); refreshThread(); }
+    }, { passive: true });
+  });
+
   function schedule() {
     stopPolling();
     if (!state.me) return;
-    state.listTimer = setInterval(refreshList, document.hidden ? 20000 : 4000);
-    state.threadTimer = setInterval(refreshThread, document.hidden ? 20000 : 2500);
+    var fast = isActive();
+    state.listTimer = setInterval(function () {
+      if (fast !== isActive()) return schedule();
+      refreshList();
+    }, fast ? 10000 : 60000);
+    state.threadTimer = setInterval(refreshThread, fast ? 4000 : 60000);
   }
   function startPolling() {
     refreshList();

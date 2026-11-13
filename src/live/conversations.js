@@ -80,7 +80,8 @@ export const deleteConversation = async (id) => {
 
 export const listConversations = async (limit = 50) => {
   const ids = await store.zrevrange(INDEX_KEY, 0, limit - 1);
-  const metas = await Promise.all(ids.map((id) => getConversation(id)));
+  // One MGET for the whole list instead of one GET per conversation.
+  const metas = (await store.mget(ids.map(metaKey))).map(parse);
   // Expired conversations leave a dangling index entry — prune as we go.
   await Promise.all(ids.filter((_, i) => !metas[i]).map((id) => store.zrem(INDEX_KEY, id)));
   return metas.filter(Boolean);
@@ -101,6 +102,7 @@ export const addMessage = async (id, author, text, metaPatch = {}) => {
     updatedAt: now,
     preview: text.replace(/\*\*/g, "").replace(/\s+/g, " ").slice(0, 120),
     lastAuthor: author,
+    lastId: message.id, // lets pollers skip reading messages when nothing is new
     unread: author === "visitor" ? meta.unread + 1 : meta.unread,
     ...metaPatch,
   });

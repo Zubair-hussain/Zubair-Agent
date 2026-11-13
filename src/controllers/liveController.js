@@ -135,8 +135,10 @@ export const pollMessagesHandler = async (req, res, next) => {
     const meta = await getConversation(req.conversationId);
     if (!meta) return notFound(res);
 
+    const after = afterParam(req);
+    const hasNew = !meta.lastId || meta.lastId > after;
     const [messages, status, typing] = await Promise.all([
-      getMessages(meta.id, afterParam(req)),
+      hasNew ? getMessages(meta.id, after) : [],
       getStatus(),
       isTyping(meta.id, "zubair"),
     ]);

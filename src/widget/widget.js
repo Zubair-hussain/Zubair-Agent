@@ -370,9 +370,9 @@
     if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); send(input.value); }
   });
 
-  // Poll every 3s while open, every ~21s while closed (keeps the badge fresh).
+  // Poll every 4s while open, once a minute while closed (keeps the badge fresh).
   var tick = 0;
-  setInterval(function () { tick++; if (open || tick % 7 === 0) poll(); }, 3000);
+  setInterval(function () { tick++; if (open || tick % 15 === 0) poll(); }, 4000);
   document.addEventListener("visibilitychange", poll);
 
   // ── Mount (stylesheet comes from the same server as this script) ────────
