@@ -107,7 +107,13 @@
 .zcw-head-top { display: flex; align-items: center; justify-content: space-between; }
 .zcw-team { display: flex; }
 .zcw-team .zcw-av { border: 2px solid var(--zcw-primary); width: 38px; height: 38px; font-size: 16px; }
-.zcw-team .zcw-av + .zcw-av { margin-left: -9px; }
+/* Clickable "who do you want to talk to" avatars */
+.zcw-pick { position: relative; border-radius: 50% !important; transition: transform .15s ease, opacity .15s ease; opacity: .55; }
+.zcw-pick + .zcw-pick { margin-left: -6px; }
+.zcw-pick:hover { opacity: .9; transform: translateY(-1px); }
+.zcw-pick[aria-selected="true"] { opacity: 1; z-index: 1; }
+.zcw-pick[aria-selected="true"] .zcw-av { box-shadow: 0 0 0 2px var(--zcw-primary), 0 0 0 4px #fff; }
+.zcw-who { margin: 0 0 6px; font-size: 12.5px; font-weight: 600; opacity: .95; }
 .zcw-x { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; color: var(--zcw-on-primary) !important; opacity: .85; }
 .zcw-x:hover { opacity: 1; background: rgba(255, 255, 255, .16) !important; }
 .zcw-x svg { width: 16px; height: 16px; }
