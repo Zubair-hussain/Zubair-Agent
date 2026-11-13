@@ -1,81 +1,127 @@
-import "dotenv/config";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import express from "express";
-import cors from "cors";
 import helmet from "helmet";
-import { globalLimiter, errorHandler, notFound } from "./middleware/index.js";
+import config from "./config.js";
 import routes from "./routes/index.js";
-import { getPKTNow } from "./utils/timezone.js";
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const adminDir = path.join(path.dirname(fileURLToPath(import.meta.url)), "admin");
 
-// ── Security & Parsing ────────────────────────────────────────────────────────
-app.use(helmet());
-app.use(cors({
-  origin: process.env.ALLOWED_ORIGINS === "*"
-    ? "*"
-    : process.env.ALLOWED_ORIGINS?.split(",").map(o => o.trim()),
-  methods: ["GET", "POST", "DELETE"],
-}));
-app.use(express.json({ limit: "50kb" }));
-app.use(globalLimiter);
+// Behind exactly one proxy hop (Vercel) — makes req.ip the real client address
+// instead of a spoofable X-Forwarded-For value.
+app.set("trust proxy", 1);
+app.disable("x-powered-by");
 
-// ── Logger ────────────────────────────────────────────────────────────────────
-app.use((req, _res, next) => {
-  console.log(`[${getPKTNow()}] ${req.method} ${req.path}`);
-  next();
+// ── Security headers ──────────────────────────────────────────────────────────
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      useDefaults: false,
+      directives: {
+        defaultSrc: ["'none'"],
+        scriptSrc: ["'self'"], // no inline scripts anywhere
+        styleSrc: ["'self'"],
+        imgSrc: ["'self'", "data:"],
+        connectSrc: ["'self'"],
+        workerSrc: ["'self'"],
+        manifestSrc: ["'self'"],
+        formAction: ["'self'"],
+        baseUri: ["'none'"],
+        frameAncestors: ["'none'"],
+      },
+    },
+    crossOriginResourcePolicy: { policy: "cross-origin" }, // the API is called from the website
+    referrerPolicy: { policy: "no-referrer" },
+    hsts: config.isProd ? { maxAge: 31536000, includeSubDomains: true } : false,
+  })
+);
+
+// Small JSON bodies only; anything bigger is rejected before it is parsed.
+app.use(express.json({ limit: "16kb", type: "application/json" }));
+
+// ── Admin inbox (static, same origin as the API so the session cookie is first-party)
+app.get("/admin", (_req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  res.sendFile(path.join(adminDir, "index.html"));
 });
+app.get("/admin/sw.js", (_req, res) => {
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Service-Worker-Allowed", "/admin");
+  res.sendFile(path.join(adminDir, "sw.js"));
+});
+app.use(
+  "/admin",
+  express.static(adminDir, { index: false, dotfiles: "deny", maxAge: config.isProd ? "10m" : 0 })
+);
+
+// ── Embeddable widget + live demo ─────────────────────────────────────────────
+const widgetDir = path.join(path.dirname(fileURLToPath(import.meta.url)), "widget");
+app.get("/demo", (_req, res) => res.sendFile(path.join(widgetDir, "demo.html")));
+app.use(
+  "/widget",
+  (_req, res, next) => {
+    res.setHeader("Access-Control-Allow-Origin", "*"); // static, public, no credentials
+    next();
+  },
+  express.static(widgetDir, { index: false, dotfiles: "deny", maxAge: config.isProd ? "1h" : 0 })
+);
 
 // ── Root ──────────────────────────────────────────────────────────────────────
-app.get("/", (_req, res) => res.redirect("/api"));
+app.get("/", (_req, res) => res.redirect("/demo"));
 
 app.get("/api", (_req, res) => {
   res.json({
     success: true,
     name: "Zubair AI Agent",
-    version: "2.0.0",
-    description: "Custom AI agent for Syed Zubair Hussain Shah — Xovato Digital Agency",
-    serverTime: getPKTNow() + " (PKT)",
-    noExternalAI: true,
+    version: "3.0.0",
+    description: "AI agent + live chat backend for Syed Zubair Hussain Shah — Xovato Digital Agency",
     endpoints: {
-      "POST /api/chat":                  "Chat with the agent. Body: { message, sessionId? }",
-      "GET  /api/chat/history/:sid":     "Get conversation history for a session",
-      "GET  /api/chat/stats":            "Active session count",
-      "DELETE /api/chat/:sid":           "Clear a session",
-      "POST /api/contract":             "Generate project contract. Body: { clientName, clientEmail, projectTitle, projectDescription, budget, timeline, clientTimezone? }",
-      "POST /api/contact":              "Send inquiry to Zubair. Body: { senderName, senderEmail, subject, message, timezone? }",
-      "POST /api/search":               "Search Google via SERP. Body: { query }",
-      "GET  /api/profile":              "Full public profile",
-      "GET  /api/profile/pricing":      "Services & pricing",
-      "GET  /api/profile/timezone":     "PKT time + all timezone conversions",
-    },
-    links: {
-      portfolio:  "https://zubair-hussain-shah.vercel.app",
-      github:     "https://github.com/Zubair-hussain",
-      linkedin:   "https://www.linkedin.com/in/syed-zubair-hussain-shah-491294376",
-      notion:     "https://www.notion.so/Zubair-Hussain-Full-Stack-Developer-3278c7707d0180b784a2d7807e6157c4",
-      whatsapp:   "https://wa.me/923110302103",
+      "GET  /api/live/status": "Is Zubair online + typical reply time",
+      "POST /api/live/conversations": "Start a live chat. Body: { text, page? } → { token, messages }",
+      "GET  /api/live/messages?after=": "Poll a conversation (Bearer visitor token)",
+      "POST /api/live/messages": "Send a message (Bearer visitor token). Body: { text }",
+      "POST /api/live/identify": "Attach name/email (Bearer visitor token)",
+      "POST /api/chat": "One-shot AI answer. Body: { message }",
+      "POST /api/contract": "Generate a project contract",
+      "POST /api/contact": "Send an inquiry to Zubair",
+      "POST /api/search": "Search Google via SERP. Body: { query }",
+      "GET  /api/profile": "Full public profile",
+      "GET  /api/profile/pricing": "Services & pricing",
+      "GET  /api/profile/timezone": "PKT time + timezone conversions",
     },
   });
 });
 
-// ── API Routes ────────────────────────────────────────────────────────────────
+// ── API ───────────────────────────────────────────────────────────────────────
 app.use("/api", routes);
 
-// ── 404 & Error ───────────────────────────────────────────────────────────────
-app.use(notFound);
-app.use(errorHandler);
+// ── 404 & errors ──────────────────────────────────────────────────────────────
+app.use((_req, res) => {
+  res.status(404).json({ success: false, error: "Not found.", hint: "See GET /api for available endpoints." });
+});
 
-// ── Start ─────────────────────────────────────────────────────────────────────
-if (process.env.NODE_ENV !== "test") {
-  app.listen(PORT, () => {
-    console.log("╔══════════════════════════════════════════════════════╗");
-    console.log("║        Zubair AI Agent v2.0 — Started               ║");
-    console.log(`║  Port     : ${PORT}                                    ║`);
-    console.log(`║  Time     : ${getPKTNow().slice(0, 22)} (PKT)   ║`);
-    console.log("║  Engine   : Custom (no external AI API)             ║");
-    console.log("║  Author   : Syed Zubair Hussain Shah — Xovato       ║");
-    console.log("╚══════════════════════════════════════════════════════╝");
+// eslint-disable-next-line no-unused-vars
+app.use((err, _req, res, _next) => {
+  const status = err.status || err.statusCode || 500;
+  // Details go to the server log only — never to the client.
+  if (status >= 500) console.error(`[ERROR] ${new Date().toISOString()}`, err);
+  const message =
+    status === 400 ? "Invalid request body."
+    : status === 413 ? "Request body too large."
+    : status === 503 ? "Service temporarily unavailable."
+    : status < 500 ? "Request rejected."
+    : "Internal server error.";
+  res.status(status).json({ success: false, error: message });
+});
+
+// ── Start (skipped on Vercel, where the app is imported as a handler) ─────────
+if (!process.env.VERCEL && process.env.NODE_ENV !== "test") {
+  app.listen(config.port, () => {
+    console.log(`Zubair AI Agent v3 listening on http://localhost:${config.port}`);
+    console.log(`  Admin inbox : http://localhost:${config.port}/admin (${config.admin.enabled ? "login enabled" : "DISABLED — set JWT_SECRET + ADMIN_PASSWORD_HASH"})`);
+    console.log(`  Storage     : ${config.store.persistent ? "Upstash Redis" : "in-memory (dev only — data is lost on restart)"}`);
+    console.log(`  Web push    : ${config.push.enabled ? "enabled" : "disabled — set VAPID keys"}`);
   });
 }
 
