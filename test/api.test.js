@@ -156,7 +156,9 @@ test("visitor ↔ AI ↔ Zubair share one thread; presence and AI pause work", a
   // Markup is stored as inert text (clients render with textContent).
   const xss = await call("/api/live/messages", { method: "POST", body: { text: "<img src=x onerror=alert(1)> talk to zubair" }, headers: auth });
   assert.equal(xss.data.messages[0].text, "<img src=x onerror=alert(1)> talk to zubair");
-  assert.match(xss.data.messages[1].text, /notified \*\*Zubair\*\*/);
+  assert.equal(xss.data.handoff, true); // switched straight to Zubair
+  assert.equal(xss.data.messages.length, 1); // no AI reply after a handoff
+  assert.equal(xss.data.aiActive, false);
 
   // Identify with a bad email is refused, a good one accepted.
   assert.equal((await call("/api/live/identify", { method: "POST", body: { email: "not-an-email" }, headers: auth })).res.status, 400);
@@ -173,6 +175,7 @@ test("visitor ↔ AI ↔ Zubair share one thread; presence and AI pause work", a
   const list = await call("/api/admin/conversations?active=1", { headers: adminHeaders });
   const row = list.data.conversations.find((c) => c.id === conversationId);
   assert.equal(row.unread, 2);
+  assert.equal(row.aiEnabled, false);
   assert.equal(row.handoff, true);
   assert.equal(row.name, "Sara");
 
@@ -181,7 +184,7 @@ test("visitor ↔ AI ↔ Zubair share one thread; presence and AI pause work", a
 
   // Opening the thread marks it read.
   const thread = await call(`/api/admin/conversations/${conversationId}`, { headers: adminHeaders });
-  assert.equal(thread.data.messages.length, 4);
+  assert.equal(thread.data.messages.length, 3);
   assert.equal(thread.data.conversation.unread, 0);
 
   // Zubair replies → visitor receives it via polling.
@@ -219,6 +222,21 @@ test("visitor ↔ AI ↔ Zubair share one thread; presence and AI pause work", a
   // Logout clears the cookie.
   const out = await call("/api/admin/logout", { method: "POST", body: {}, headers: adminHeaders });
   assert.match(out.res.headers.get("set-cookie"), /Expires=Thu, 01 Jan 1970/);
+});
+
+test("visitor can pick who they talk to by tapping an avatar", async () => {
+  const site = { Origin: "https://zubairhussain.xyz" };
+  const start = await call("/api/live/conversations", { method: "POST", body: { text: "hello", agent: "zubair" }, headers: site });
+  assert.deepEqual(start.data.messages.map((m) => m.author), ["visitor"]); // human mode: AI silent
+  const auth = { ...site, Authorization: `Bearer ${start.data.token}` };
+
+  const toAi = await call("/api/live/agent", { method: "POST", body: { agent: "ai" }, headers: auth });
+  assert.equal(toAi.res.status, 200);
+  const next = await call("/api/live/messages", { method: "POST", body: { text: "pricing?" }, headers: auth });
+  assert.deepEqual(next.data.messages.map((m) => m.author), ["visitor", "ai"]);
+
+  assert.equal((await call("/api/live/agent", { method: "POST", body: { agent: "root" }, headers: auth })).res.status, 400);
+  assert.equal((await call("/api/live/agent", { method: "POST", body: { agent: "ai" }, headers: site })).res.status, 401);
 });
 
 // ── Abuse controls ──────────────────────────────────────────────────────────
