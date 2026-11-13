@@ -32,7 +32,7 @@
   var snippet =
     '<script src="' + location.origin + '/widget/widget.js"\n' +
     '        data-color="' + color + '"' + (mode === "dark" ? ' data-mode="dark"' : "") + '\n' +
-    '        data-name="Zubair" defer></script>';
+    '        data-name="Zubair" data-fullname="Zubair Hussain" defer></script>';
   document.getElementById("snippet").textContent = snippet;
   document.getElementById("copy").onclick = function () {
     navigator.clipboard.writeText(snippet).then(function () { document.getElementById("copy").textContent = "Copied!"; });
@@ -43,5 +43,6 @@
   s.dataset.color = color;
   s.dataset.mode = mode;
   s.dataset.name = "Zubair";
+  s.dataset.fullname = "Zubair Hussain";
   document.body.appendChild(s);
 })();
