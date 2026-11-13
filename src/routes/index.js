@@ -34,7 +34,6 @@ admin.use((_req, res, next) => {
 admin.post("/login", rateLimit("login-req", 20, 15 * MINUTE), loginHandler);
 admin.post("/logout", logoutHandler);
 admin.use(requireAdmin);
-admin.use(rateLimit("admin", 600, MINUTE));
 admin.get("/me", meHandler);
 admin.get("/conversations", listHandler);
 admin.get("/conversations/:id", threadHandler);
@@ -73,7 +72,10 @@ router.use(
     maxAge: 600,
   })
 );
-router.use(rateLimit("global", 240, MINUTE));
+// Writes share a global per-IP limit. Reads (polling) already have their own
+// per-conversation limit, so they skip this one to save Redis commands.
+const globalLimit = rateLimit("global", 240, MINUTE);
+router.use((req, res, next) => (req.method === "GET" ? next() : globalLimit(req, res, next)));
 
 // Live chat (website widget)
 router.get("/live/status", statusHandler);
