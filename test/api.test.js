@@ -262,6 +262,21 @@ test("security headers are present", async () => {
   assert.equal(res.headers.get("x-powered-by"), null);
 });
 
+test("SEO: robots, sitemap, noindex on private routes, demo meta", async () => {
+  const robots = await fetch(base + "/robots.txt").then((r) => r.text());
+  assert.match(robots, /Disallow: \/api\//);
+  assert.match(robots, /Disallow: \/admin/);
+  assert.match(robots, /Sitemap: .*\/sitemap\.xml/);
+  assert.match(await fetch(base + "/sitemap.xml").then((r) => r.text()), /<loc>.*\/demo<\/loc>/);
+  assert.equal((await fetch(base + "/api/live/status")).headers.get("x-robots-tag"), "noindex, nofollow");
+  assert.equal((await fetch(base + "/admin")).headers.get("x-robots-tag"), "noindex, nofollow");
+  const root = await fetch(base + "/", { redirect: "manual" });
+  assert.equal(root.status, 301);
+  const demo = await fetch(base + "/demo").then((r) => r.text());
+  assert.match(demo, /<link rel="canonical"/);
+  assert.match(demo, /"@type":"SoftwareApplication"/);
+});
+
 test("login locks out after repeated failures (runs last)", async () => {
   let last;
   for (let i = 0; i < 6; i++) last = await login("wrong-" + i);

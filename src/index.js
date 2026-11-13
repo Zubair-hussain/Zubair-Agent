@@ -40,6 +40,13 @@ app.use(
 // Small JSON bodies only; anything bigger is rejected before it is parsed.
 app.use(express.json({ limit: "16kb", type: "application/json" }));
 
+// API responses and the private inbox must never appear in search results.
+app.use(["/api", "/admin"], (_req, res, next) => {
+  res.setHeader("X-Robots-Tag", "noindex, nofollow");
+  next();
+});
+
+
 // ── Admin inbox (static, same origin as the API so the session cookie is first-party)
 app.get("/admin", (_req, res) => {
   res.setHeader("Cache-Control", "no-store");
@@ -55,6 +62,25 @@ app.use(
   express.static(adminDir, { index: false, dotfiles: "deny", maxAge: config.isProd ? "10m" : 0 })
 );
 
+// ── SEO: only the public demo page is meant for search engines ───────────────
+const publicOrigin = (req) => `${config.isProd ? "https" : req.protocol}://${req.get("host")}`;
+
+app.get("/robots.txt", (req, res) => {
+  res.type("text/plain").setHeader("Cache-Control", "public, max-age=3600");
+  res.send(
+    ["User-agent: *", "Allow: /demo", "Allow: /widget/", "Disallow: /api/", "Disallow: /admin", "", `Sitemap: ${publicOrigin(req)}/sitemap.xml`, ""].join("\n")
+  );
+});
+
+app.get("/sitemap.xml", (req, res) => {
+  res.type("application/xml").setHeader("Cache-Control", "public, max-age=3600");
+  res.send(
+    `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>${publicOrigin(req)}/demo</loc><changefreq>weekly</changefreq><priority>1.0</priority></url></urlset>
+`
+  );
+});
+
 // ── Embeddable widget + live demo ─────────────────────────────────────────────
 const widgetDir = path.join(path.dirname(fileURLToPath(import.meta.url)), "widget");
 app.get("/demo", (_req, res) => res.sendFile(path.join(widgetDir, "demo.html")));
@@ -68,7 +94,7 @@ app.use(
 );
 
 // ── Root ──────────────────────────────────────────────────────────────────────
-app.get("/", (_req, res) => res.redirect("/demo"));
+app.get("/", (_req, res) => res.redirect(301, "/demo"));
 
 app.get("/api", (_req, res) => {
   res.json({
