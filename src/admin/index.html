@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#c8141e">
+  <title>Inbox — Zubair Live Chat</title>
+  <link rel="stylesheet" href="/admin/styles.css">
+</head>
+<body>
+
+  <!-- ── Login ─────────────────────────────────────────────────────────── -->
+  <main id="login-view" class="login" hidden>
+    <form id="login-form" class="login-card" autocomplete="on" novalidate>
+      <div class="brand-mark" aria-hidden="true">Z</div>
+      <h1>Zubair's inbox</h1>
+      <p class="muted">Sign in to reply to visitors on your website.</p>
+
+      <label for="username">Username</label>
+      <input id="username" name="username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="64" required>
+
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" autocomplete="current-password" maxlength="256" required>
+
+      <p id="login-error" class="error" role="alert" hidden></p>
+      <button id="login-button" type="submit" class="primary">Sign in</button>
+    </form>
+  </main>
+
+  <!-- ── Inbox ─────────────────────────────────────────────────────────── -->
+  <div id="app-view" class="app" hidden>
+
+    <aside class="sidebar" id="sidebar">
+      <header class="sidebar-head">
+        <div class="brand-mark small" aria-hidden="true">Z</div>
+        <div class="grow">
+          <strong>Inbox</strong>
+          <span class="muted tiny" id="presence-label">You appear online to visitors</span>
+        </div>
+        <button id="logout-button" class="ghost" type="button" title="Sign out">Sign out</button>
+      </header>
+
+      <div id="notify-banner" class="banner" hidden>
+        <div>
+          <strong>Turn on notifications</strong>
+          <p class="tiny" id="notify-text">Get alerted the moment a visitor messages you — even when this tab is closed.</p>
+        </div>
+        <button id="notify-button" class="primary small" type="button">Allow</button>
+      </div>
+
+      <div id="store-warning" class="banner warn" hidden>
+        <p class="tiny"><strong>Temporary storage.</strong> No database is connected, so chats are lost when the server restarts. Add Upstash Redis in Vercel.</p>
+      </div>
+
+      <ul id="conversation-list" class="conversation-list" aria-label="Conversations"></ul>
+      <p id="empty-list" class="empty muted" hidden>No conversations yet. They will appear here as soon as someone writes on your site.</p>
+    </aside>
+
+    <section class="thread" id="thread">
+      <div id="thread-empty" class="thread-empty muted">
+        <p>Select a conversation to start replying.</p>
+      </div>
+
+      <div id="thread-body" class="thread-body" hidden>
+        <header class="thread-head">
+          <button id="back-button" class="ghost back" type="button" aria-label="Back to conversations">←</button>
+          <div class="grow">
+            <strong id="thread-title">Visitor</strong>
+            <span class="muted tiny" id="thread-sub"></span>
+          </div>
+          <label class="switch" title="When on, Zubair AI answers this visitor automatically">
+            <input id="ai-toggle" type="checkbox">
+            <span>AI replies</span>
+          </label>
+          <button id="delete-button" class="ghost danger" type="button">Delete</button>
+        </header>
+
+        <div id="messages" class="messages" aria-live="polite"></div>
+        <p id="typing" class="typing muted tiny" hidden>Visitor is typing…</p>
+
+        <form id="reply-form" class="composer">
+          <textarea id="reply-input" rows="1" maxlength="2000" placeholder="Reply as Zubair…  (Enter to send, Shift+Enter for a new line)" aria-label="Your reply"></textarea>
+          <button class="primary" type="submit" id="send-button">Send</button>
+        </form>
+      </div>
+    </section>
+  </div>
+
+  <div id="toast" class="toast" role="status" hidden></div>
+  <script src="/admin/app.js" defer></script>
+</body>
+</html>

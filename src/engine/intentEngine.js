@@ -1,163 +1,225 @@
 // ─────────────────────────────────────────────────────────────────────────────
-//  Intent Engine — Detects user intent from raw message text
-//  No AI needed — pure pattern matching + keyword scoring
+//  Intent Engine v3 — weighted scoring instead of "first regex wins".
+//
+//  Why the rewrite: the old engine returned the FIRST intent whose pattern
+//  matched, and patterns such as /ai|ml/ had no word boundaries — so "email",
+//  "html" or "available" were all classified as AI/ML. Now every intent is
+//  scored (phrases > keywords, whole words only, small typo tolerance) and the
+//  best score wins. Still zero external AI calls, still sub-millisecond.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const intents = [
-  // Greetings
+const PHRASE_WEIGHT = 3;
+const KEYWORD_WEIGHT = 1;
+
+// `phrases` are strong signals; `keywords` are weak ones. All are matched on
+// word boundaries against a normalised (lower-cased, punctuation-free) message.
+const INTENTS = [
   {
-    name: "greeting",
-    patterns: [/^(hi|hello|hey|sup|yo|good\s*(morning|afternoon|evening|day)|howdy|greetings|salaam|salam)/i],
-    keywords: ["hi", "hello", "hey", "greet"],
+    name: "handoff",
+    phrases: [
+      "talk to zubair", "speak to zubair", "chat with zubair", "real person", "real human", "human agent",
+      "talk to a human", "speak to a human", "talk to someone", "live agent", "live chat", "talk to human",
+      "connect me to zubair", "is zubair there", "is zubair online", "talk to him", "speak with zubair",
+      "talk to the owner", "not a bot", "actual person",
+    ],
+    keywords: ["human", "operator"],
   },
-  // Identity / Who are you
-  {
-    name: "who_are_you",
-    patterns: [/who are you|what are you|tell me about (yourself|zubair)|introduce yourself|about you/i],
-    keywords: ["who", "about", "introduce", "yourself", "zubair"],
-  },
-  // Skills
-  {
-    name: "skills",
-    patterns: [/what (can you|do you|skills|tech|stack|know|build|develop|create)/i, /skills?|expertise|capable|experience with|proficient/i],
-    keywords: ["skill", "tech", "stack", "build", "develop", "react", "node", "python", "mobile", "ai", "ml", "design", "video", "next", "mongodb", "typescript"],
-  },
-  // Services
-  {
-    name: "services",
-    patterns: [/what (services|do you offer|can you do|do you provide)/i, /services?|offerings?|packages?|what.*build/i],
-    keywords: ["service", "offer", "package", "provide", "available", "do you do", "can you make"],
-  },
-  // Pricing
-  {
-    name: "pricing",
-    patterns: [/how much|what.*cost|price|pricing|rate|charge|budget|quote|estimate/i],
-    keywords: ["price", "cost", "how much", "rate", "charge", "budget", "quote", "fee", "dollar", "usd"],
-  },
-  // Projects / Portfolio
-  {
-    name: "portfolio",
-    patterns: [/portfolio|projects?|work|built|created|show me|examples?|previous/i],
-    keywords: ["portfolio", "project", "work", "built", "example", "show", "demo", "past", "previous"],
-  },
-  // Contact
-  {
-    name: "contact",
-    patterns: [/contact|reach|email|message|get in touch|talk to|speak to|connect/i],
-    keywords: ["contact", "email", "reach", "message", "touch", "talk", "speak", "connect"],
-  },
-  // Book a call
   {
     name: "book_call",
-    patterns: [/book (a )?(call|meeting|session|appointment|consult)|schedule (a )?(call|meeting)|set up (a )?(call|meeting)|calendly|discovery call/i],
-    keywords: ["book", "call", "meeting", "schedule", "appointment", "consult", "calendly", "video call", "zoom"],
+    phrases: [
+      "book a call", "book call", "book a meeting", "schedule a call", "schedule a meeting", "set up a call",
+      "discovery call", "video call", "have a call", "jump on a call", "get on a call", "book an appointment",
+    ],
+    keywords: ["calendly", "appointment", "meeting", "schedule", "zoom", "consultation", "book"],
   },
-  // Contract
+  {
+    name: "pricing",
+    phrases: ["how much", "what does it cost", "what do you charge", "your rates", "price list", "hourly rate"],
+    keywords: ["price", "prices", "pricing", "cost", "costs", "rate", "rates", "charge", "budget", "quote", "estimate", "fee", "fees", "cheap", "expensive", "usd"],
+  },
   {
     name: "contract",
-    patterns: [/contract|proposal|agreement|terms|hire|start (a )?project|work together|let's work/i],
-    keywords: ["contract", "proposal", "agreement", "hire", "start", "work together", "terms", "deal"],
+    phrases: [
+      "generate a contract", "need a contract", "want to hire", "hire you", "hire zubair", "hire him",
+      "start a project", "work together", "work with you", "work with zubair", "get started", "send a proposal",
+    ],
+    keywords: ["contract", "proposal", "agreement", "hire", "hiring", "onboard"],
   },
-  // Platforms (Upwork / Fiverr / GitHub / LinkedIn)
+  {
+    name: "contact",
+    phrases: ["get in touch", "reach out", "how do i contact", "how can i contact", "contact details", "phone number"],
+    keywords: ["contact", "email", "mail", "reach", "phone", "number"],
+  },
   {
     name: "platforms",
-    patterns: [/upwork|fiverr|github|linkedin|notion|instagram|facebook|whatsapp|social|profile/i],
-    keywords: ["upwork", "fiverr", "github", "linkedin", "notion", "instagram", "facebook", "whatsapp", "social", "profile", "find you"],
+    phrases: ["where can i find", "social media", "find you online"],
+    keywords: ["upwork", "fiverr", "github", "linkedin", "instagram", "facebook", "whatsapp", "socials", "profile", "profiles"],
   },
-  // Timezone / Availability
-  {
-    name: "timezone",
-    patterns: [/timezone|time zone|available|availability|when.*work|hours|schedule|pkt|utc/i],
-    keywords: ["timezone", "available", "hours", "schedule", "when", "pkt", "utc", "time"],
-  },
-  // Error search / tech help
-  {
-    name: "error_search",
-    patterns: [/error|bug|issue|fix|problem|not working|crash|debug|how (to|do i)|solution|solve/i],
-    keywords: ["error", "bug", "fix", "issue", "problem", "crash", "debug", "not working", "solution", "how to"],
-  },
-  // Video editing
-  {
-    name: "video_editing",
-    patterns: [/video (edit|editing|production)|reel|tiktok|youtube|shorts|premiere|davinci|capcut|after effects/i],
-    keywords: ["video", "edit", "reel", "tiktok", "youtube", "shorts", "premiere", "davinci", "capcut"],
-  },
-  // Graphic design
-  {
-    name: "graphic_design",
-    patterns: [/graphic (design|designer)|logo|brand|ui|ux|figma|photoshop|design|thumbnail|banner/i],
-    keywords: ["graphic", "design", "logo", "brand", "ui", "ux", "figma", "photoshop", "thumbnail", "banner"],
-  },
-  // Mobile app
-  {
-    name: "mobile",
-    patterns: [/mobile (app|application|dev)|react native|android|ios|app (development|dev)/i],
-    keywords: ["mobile", "app", "android", "ios", "react native", "application"],
-  },
-  // AI / ML
-  {
-    name: "aiml",
-    patterns: [/ai|machine learning|ml|data (science|analysis|analyst)|python|model|prediction|kaggle/i],
-    keywords: ["ai", "ml", "machine learning", "data", "python", "model", "prediction", "kaggle", "scikit"],
-  },
-  // Notion roadmap
   {
     name: "notion",
-    patterns: [/notion|roadmap|proposal page|pitch deck|portfolio page/i],
-    keywords: ["notion", "roadmap", "pitch", "proposal page"],
+    phrases: ["pitch deck", "proposal page", "notion portfolio"],
+    keywords: ["notion", "roadmap"],
   },
-  // Certifications / Education
+  {
+    name: "portfolio",
+    phrases: ["show me your work", "show me projects", "recent projects", "past work", "previous work", "case studies", "what have you built"],
+    keywords: ["portfolio", "project", "projects", "examples", "demo", "demos", "showcase", "built"],
+  },
+  {
+    name: "mobile",
+    phrases: ["mobile app", "react native", "ios app", "android app", "app development", "build an app"],
+    keywords: ["mobile", "android", "ios", "apk"],
+  },
+  {
+    name: "aiml",
+    phrases: ["machine learning", "data science", "data analysis", "ai chatbot", "ai integration", "train a model", "ai agent"],
+    keywords: ["ai", "ml", "chatbot", "llm", "python", "kaggle", "model", "dataset", "automation"],
+  },
+  {
+    name: "video_editing",
+    phrases: ["video editing", "video editor", "edit a video", "edit videos", "after effects", "premiere pro", "motion graphics"],
+    keywords: ["video", "videos", "reel", "reels", "tiktok", "youtube", "shorts", "davinci", "capcut"],
+  },
+  {
+    name: "graphic_design",
+    phrases: ["graphic design", "ui design", "ux design", "ui ux", "brand identity", "logo design"],
+    keywords: ["design", "designer", "logo", "figma", "photoshop", "thumbnail", "banner", "branding", "wireframe"],
+  },
+  {
+    name: "services",
+    phrases: ["what services", "what do you offer", "what can you do", "what can zubair do", "what can you build", "what can zubair build", "do you offer", "can you build", "can you make"],
+    keywords: ["service", "services", "offer", "offering", "package", "packages", "website", "ecommerce", "shopify", "wordpress", "landing"],
+  },
+  {
+    name: "skills",
+    phrases: ["tech stack", "what technologies", "what do you know", "experience with", "do you know", "are you good at"],
+    keywords: ["skill", "skills", "stack", "expertise", "technologies", "react", "nextjs", "node", "typescript", "mongodb", "javascript", "frontend", "backend", "fullstack"],
+  },
   {
     name: "certifications",
-    patterns: [/certif|education|degree|study|course|qualification|background/i],
-    keywords: ["certif", "education", "degree", "course", "qualification", "background", "study"],
+    phrases: ["where did you study", "educational background"],
+    keywords: ["certification", "certifications", "certificate", "education", "degree", "university", "qualification", "qualifications", "studied"],
   },
-  // FAQ
+  {
+    name: "timezone",
+    phrases: ["time zone", "working hours", "what time", "when are you available", "business hours", "office hours"],
+    keywords: ["timezone", "availability", "available", "hours", "pkt", "utc"],
+  },
   {
     name: "faq",
-    patterns: [/weekend|nda|confidential|revision|rush|urgent|maintenance|payment method|how.*pay/i],
-    keywords: ["weekend", "nda", "confidential", "revision", "rush", "urgent", "maintenance", "payment"],
+    phrases: ["payment method", "how do i pay", "how to pay", "after delivery", "sign an nda", "fast delivery"],
+    keywords: ["nda", "confidential", "revision", "revisions", "rush", "urgent", "asap", "maintenance", "refund", "payment", "paypal", "weekend", "weekends"],
   },
-  // Thanks / Goodbye
+  {
+    name: "error_search",
+    phrases: ["not working", "how do i fix", "how to fix", "getting an error", "search for"],
+    keywords: ["error", "bug", "crash", "debug", "exception", "undefined", "stacktrace", "fix"],
+  },
+  {
+    name: "who_are_you",
+    phrases: ["who are you", "who is zubair", "what are you", "about zubair", "about yourself", "introduce yourself", "tell me about you", "are you a bot", "are you ai"],
+    keywords: ["introduce", "yourself", "bio"],
+  },
   {
     name: "thanks",
-    patterns: [/thank|thanks|thank you|thx|appreciate|great|awesome|perfect|bye|goodbye|see you/i],
-    keywords: ["thank", "thanks", "appreciate", "great", "awesome", "perfect", "bye", "goodbye"],
+    phrases: ["thank you", "thanks a lot", "see you", "good bye", "that helps", "got it"],
+    keywords: ["thanks", "thank", "thx", "appreciate", "awesome", "perfect", "bye", "goodbye", "cheers"],
   },
 ];
 
-/**
- * Detect intent from a user message
- * Returns the best matching intent name or "unknown"
- */
-export const detectIntent = (message) => {
-  const lower = message.toLowerCase().trim();
+const GREETING_RE = /^(hi+|hello+|hey+|yo|sup|howdy|greetings|salaa?m|assalam\w*( o)? ?alaikum|aoa|good (morning|afternoon|evening|day))\b/;
+const AFFIRM_RE = /^(yes|yeah|yep|yup|sure|ok|okay|please|go ahead|sounds good|do it|yes please|of course|alright)$/;
+const DENY_RE = /^(no|nope|nah|not now|no thanks|not really)$/;
 
-  // Check pattern matches first (higher confidence)
-  for (const intent of intents) {
-    for (const pattern of intent.patterns) {
-      if (pattern.test(lower)) {
-        return intent.name;
-      }
-    }
-  }
-
-  // Fallback: keyword scoring
-  let bestIntent = null;
-  let bestScore = 0;
-
-  for (const intent of intents) {
-    let score = 0;
-    for (const kw of intent.keywords) {
-      if (lower.includes(kw)) score++;
-    }
-    if (score > bestScore) {
-      bestScore = score;
-      bestIntent = intent.name;
-    }
-  }
-
-  return bestScore > 0 ? bestIntent : "unknown";
+// After answering an intent, a bare "yes" naturally leads to the next step.
+export const FOLLOW_UP = {
+  greeting: "services",
+  who_are_you: "services",
+  services: "pricing",
+  skills: "portfolio",
+  portfolio: "pricing",
+  pricing: "book_call",
+  mobile: "pricing",
+  aiml: "pricing",
+  video_editing: "pricing",
+  graphic_design: "pricing",
+  contract: "book_call",
+  timezone: "book_call",
+  contact: "book_call",
 };
+
+export const normalize = (message) =>
+  String(message)
+    .toLowerCase()
+    .replace(/next\.?js/g, "nextjs")
+    .replace(/node\.?js/g, "node")
+    .replace(/full[\s-]stack/g, "fullstack")
+    .replace(/e-commerce/g, "ecommerce")
+    .replace(/[^\p{L}\p{N}\s$]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+/** Edit distance ≤ 1 (insert / delete / substitute / adjacent transposition). */
+const isNear = (a, b) => {
+  if (a === b) return true;
+  const la = a.length;
+  const lb = b.length;
+  if (Math.abs(la - lb) > 1) return false;
+  let i = 0;
+  while (i < la && i < lb && a[i] === b[i]) i++;
+  if (la === lb) {
+    if (a.slice(i + 1) === b.slice(i + 1)) return true; // substitution
+    return a[i] === b[i + 1] && a[i + 1] === b[i] && a.slice(i + 2) === b.slice(i + 2); // transposition
+  }
+  return la > lb ? a.slice(i + 1) === b.slice(i) : a.slice(i) === b.slice(i + 1);
+};
+
+// Phrase lookups are precompiled once at module load.
+const COMPILED = INTENTS.map((intent) => ({
+  name: intent.name,
+  phrases: intent.phrases.map((p) => new RegExp(`(^| )${p}( |$)`)),
+  keywords: new Set(intent.keywords),
+  // Only longer keywords get typo tolerance — short ones ("ai", "ui") must be exact.
+  fuzzy: intent.keywords.filter((k) => k.length >= 6),
+}));
+
+/**
+ * Score a message against every intent.
+ * @returns {{ intent: string, score: number, ranked: Array<{name, score}> }}
+ */
+export const analyze = (message, context = {}) => {
+  const text = normalize(message);
+  if (!text) return { intent: "unknown", score: 0, ranked: [] };
+
+  const words = text.split(" ");
+
+  if (context.lastIntent && words.length <= 3) {
+    if (AFFIRM_RE.test(text) && FOLLOW_UP[context.lastIntent]) {
+      return { intent: FOLLOW_UP[context.lastIntent], score: PHRASE_WEIGHT, ranked: [], followUp: true };
+    }
+    if (DENY_RE.test(text)) return { intent: "thanks", score: PHRASE_WEIGHT, ranked: [] };
+  }
+
+  const ranked = COMPILED.map((intent) => {
+    let score = 0;
+    for (const re of intent.phrases) if (re.test(text)) score += PHRASE_WEIGHT;
+    for (const word of words) {
+      if (intent.keywords.has(word)) score += KEYWORD_WEIGHT;
+      else if (word.length >= 6 && intent.fuzzy.some((k) => isNear(word, k))) score += KEYWORD_WEIGHT * 0.75;
+    }
+    return { name: intent.name, score };
+  })
+    .filter((r) => r.score > 0)
+    .sort((a, b) => b.score - a.score); // stable: ties keep INTENTS priority order
+
+  if (ranked.length) return { intent: ranked[0].name, score: ranked[0].score, ranked };
+
+  // A greeting only counts when nothing more specific was asked.
+  if (GREETING_RE.test(text) && words.length <= 6) return { intent: "greeting", score: PHRASE_WEIGHT, ranked };
+
+  return { intent: "unknown", score: 0, ranked };
+};
+
+export const detectIntent = (message, context) => analyze(message, context).intent;
 
 export default detectIntent;

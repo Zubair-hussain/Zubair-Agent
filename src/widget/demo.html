@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Zubair Chat — free Crisp alternative (live demo)</title>
+  <meta name="description" content="Free, open-source, self-hosted live chat widget with an AI assistant and a human inbox. Deploy on Vercel in minutes.">
+  <link rel="stylesheet" href="/widget/demo.css">
+</head>
+<body>
+  <main>
+    <h1>Zubair Chat</h1>
+    <p class="lead">A free, self-hosted Crisp-style live chat: an AI assistant answers instantly, and you jump into the same conversation from your inbox.</p>
+
+    <h2>Pick a colour template</h2>
+    <div id="swatches" class="swatches" role="radiogroup" aria-label="Colour"></div>
+
+    <div class="row">
+      <label><input type="radio" name="mode" value="light" checked> Light</label>
+      <label><input type="radio" name="mode" value="dark"> Dark</label>
+    </div>
+
+    <h2>Embed code</h2>
+    <pre><code id="snippet"></code></pre>
+    <button id="copy" type="button">Copy</button>
+
+    <p class="hint">The chat bubble is in the bottom-right corner. Open <a href="/admin">/admin</a> in another tab to reply as the human.</p>
+  </main>
+  <script src="/widget/demo.js" defer></script>
+</body>
+</html>
