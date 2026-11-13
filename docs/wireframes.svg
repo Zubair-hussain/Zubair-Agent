@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="560" viewBox="0 0 1120 560" font-family="Segoe UI,Arial,sans-serif">
+<rect width="100%" height="100%" fill="#fafafa"/>
+<text x="140" y="30" font-size="14" fill="#111827" text-anchor="middle" font-weight="700">1 · Closed</text>
+<rect x="20" y="45" width="240" height="420" rx="6" fill="#fff" stroke="#d1d5db" stroke-width="1.5" stroke-dasharray="5 4"/>
+<text x="140" y="250" font-size="12" fill="#9ca3af" text-anchor="middle" font-weight="400">Your website</text>
+<circle cx="228" cy="433" r="22" fill="#e5e7eb" stroke="#6b7280" stroke-width="1.5"/>
+<text x="228" y="437" font-size="13" fill="#111" text-anchor="middle" font-weight="400">💬</text>
+<circle cx="244" cy="415" r="8" fill="#fca5a5"/>
+<text x="244" y="419" font-size="9" fill="#7f1d1d" text-anchor="middle" font-weight="700">2</text>
+<text x="140" y="490" font-size="11" fill="#6b7280" text-anchor="middle" font-weight="400">Launcher + unread badge</text>
+<text x="420" y="30" font-size="14" fill="#111827" text-anchor="middle" font-weight="700">2 · AI answers instantly</text>
+<rect x="300" y="45" width="240" height="420" rx="14" fill="#fff" stroke="#9ca3af" stroke-width="1.5" />
+<rect x="300" y="45" width="240" height="92" rx="14" fill="#e5e7eb" stroke="#9ca3af" stroke-width="1.5" />
+<circle cx="322" cy="70" r="11" fill="#fff" stroke="#9ca3af"/>
+<circle cx="338" cy="70" r="11" fill="#fff" stroke="#9ca3af"/>
+<text x="333" y="74" font-size="9" fill="#6b7280" text-anchor="middle" font-weight="400">Z  ✦</text>
+<text x="522" y="74" font-size="12" fill="#6b7280" text-anchor="middle" font-weight="400">✕</text>
+<text x="314" y="104" font-size="14" fill="#111827" text-anchor="start" font-weight="700">Hi there 👋</text>
+<text x="314" y="124" font-size="10" fill="#6b7280" text-anchor="start" font-weight="400">● We typically reply within 1 hour</text>
+<rect x="310" y="420" width="220" height="30" rx="15" fill="#fff" stroke="#d1d5db" stroke-width="1.5" />
+<text x="320" y="439" font-size="10" fill="#9ca3af" text-anchor="start" font-weight="400">Compose your message…</text>
+<circle cx="514" cy="435" r="10" fill="#d1d5db"/>
+<text x="420" y="462" font-size="8.5" fill="#6b7280" text-anchor="middle" font-weight="400">● Zubair was active recently · replies within 1 hour</text>
+<text x="338" y="160" font-size="9" fill="#6b7280" text-anchor="start" font-weight="400">AI assistant ✦AI</text>
+<circle cx="320" cy="214" r="9" fill="#eef2ff" stroke="#9ca3af"/>
+<rect x="334" y="166" width="150" height="52" rx="10" fill="#eef2ff" stroke="#c7d2fe" stroke-width="1.5" />
+<rect x="342" y="174" width="130" height="5" rx="2" fill="#d1d5db"/><rect x="342" y="184" width="112" height="5" rx="2" fill="#d1d5db"/><rect x="342" y="194" width="94" height="5" rx="2" fill="#d1d5db"/><rect x="342" y="204" width="76" height="5" rx="2" fill="#d1d5db"/>
+<rect x="310" y="360" width="66" height="20" rx="10" fill="#fff" stroke="#6b7280"/><rect x="382" y="360" width="66" height="20" rx="10" fill="#fff" stroke="#6b7280"/><rect x="454" y="360" width="66" height="20" rx="10" fill="#fff" stroke="#6b7280"/>
+<rect x="310" y="386" width="90" height="20" rx="10" fill="#fff" stroke="#111827"/>
+<text x="355" y="400" font-size="9" fill="#111827" text-anchor="middle" font-weight="600">Talk to Zubair</text>
+<text x="420" y="490" font-size="11" fill="#6b7280" text-anchor="middle" font-weight="400">Quick replies + AI chip</text>
+<text x="700" y="30" font-size="14" fill="#111827" text-anchor="middle" font-weight="700">3 · Zubair joins the same chat</text>
+<rect x="580" y="45" width="240" height="420" rx="14" fill="#fff" stroke="#9ca3af" stroke-width="1.5" />
+<rect x="580" y="45" width="240" height="92" rx="14" fill="#e5e7eb" stroke="#9ca3af" stroke-width="1.5" />
+<circle cx="602" cy="70" r="11" fill="#fff" stroke="#9ca3af"/>
+<circle cx="618" cy="70" r="11" fill="#fff" stroke="#9ca3af"/>
+<text x="613" y="74" font-size="9" fill="#6b7280" text-anchor="middle" font-weight="400">Z  ✦</text>
+<text x="802" y="74" font-size="12" fill="#6b7280" text-anchor="middle" font-weight="400">✕</text>
+<text x="594" y="104" font-size="14" fill="#111827" text-anchor="start" font-weight="700">Hi there 👋</text>
+<text x="594" y="124" font-size="10" fill="#6b7280" text-anchor="start" font-weight="400">● We typically reply within 1 hour</text>
+<rect x="590" y="420" width="220" height="30" rx="15" fill="#fff" stroke="#d1d5db" stroke-width="1.5" />
+<text x="600" y="439" font-size="10" fill="#9ca3af" text-anchor="start" font-weight="400">Compose your message…</text>
+<circle cx="794" cy="435" r="10" fill="#d1d5db"/>
+<text x="700" y="462" font-size="8.5" fill="#6b7280" text-anchor="middle" font-weight="400">● Zubair was active recently · replies within 1 hour</text>
+<rect x="700" y="152" width="110" height="26" rx="10" fill="#e5e7eb" stroke="#9ca3af" stroke-width="1.5" />
+<rect x="708" y="162" width="90" height="5" rx="2" fill="#d1d5db"/>
+<text x="618" y="190" font-size="9" fill="#6b7280" text-anchor="start" font-weight="400">AI assistant ✦AI</text>
+<circle cx="600" cy="224" r="9" fill="#eef2ff" stroke="#9ca3af"/>
+<rect x="614" y="196" width="150" height="32" rx="10" fill="#eef2ff" stroke="#c7d2fe" stroke-width="1.5" />
+<rect x="622" y="204" width="130" height="5" rx="2" fill="#d1d5db"/><rect x="622" y="214" width="112" height="5" rx="2" fill="#d1d5db"/>
+<text x="618" y="262" font-size="9" fill="#6b7280" text-anchor="start" font-weight="400">Zubair</text>
+<circle cx="600" cy="292" r="9" fill="#111827"/>
+<text x="600" y="295" font-size="8" fill="#fff" text-anchor="middle" font-weight="700">Z</text>
+<rect x="614" y="268" width="150" height="32" rx="10" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1.5" />
+<rect x="622" y="278" width="130" height="5" rx="2" fill="#d1d5db"/><rect x="622" y="288" width="112" height="5" rx="2" fill="#d1d5db"/>
+<rect x="614" y="320" width="156" height="86" rx="10" fill="#fff" stroke="#9ca3af" stroke-width="1.5" />
+<text x="622" y="338" font-size="10" fill="#111827" text-anchor="start" font-weight="700">Get the reply by email</text>
+<rect x="622" y="350" width="96" height="20" rx="6" fill="#fff" stroke="#d1d5db" stroke-width="1.5" />
+<rect x="722" y="350" width="40" height="20" rx="6" fill="#e5e7eb" stroke="#9ca3af" stroke-width="1.5" />
+<text x="742" y="364" font-size="9" fill="#111" text-anchor="middle" font-weight="400">Save</text>
+<text x="622" y="392" font-size="9" fill="#6b7280" text-anchor="start" font-weight="400">No thanks</text>
+<text x="700" y="490" font-size="11" fill="#6b7280" text-anchor="middle" font-weight="400">Different avatars per sender</text>
+<text x="980" y="30" font-size="14" fill="#111827" text-anchor="middle" font-weight="700">4 · Admin inbox (/admin)</text>
+<rect x="860" y="45" width="240" height="420" rx="10" fill="#fff" stroke="#9ca3af" stroke-width="1.5" />
+<rect x="860" y="45" width="90" height="420" rx="10" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1.5" />
+<rect x="866" y="56" width="78" height="40" rx="6" fill="#e0e7ff" stroke="#a5b4fc" stroke-width="1.5" />
+<text x="872" y="72" font-size="9" fill="#3730a3" text-anchor="start" font-weight="700">🔔 Allow</text>
+<text x="872" y="86" font-size="8" fill="#3730a3" text-anchor="start" font-weight="400">notifications</text>
+<circle cx="878" cy="122" r="9" fill="#d1d5db"/>
+<rect x="892" y="116" width="52" height="5" rx="2" fill="#d1d5db"/><rect x="892" y="126" width="34" height="5" rx="2" fill="#d1d5db"/>
+<circle cx="940" cy="112" r="6" fill="#fca5a5"/>
+<circle cx="878" cy="166" r="9" fill="#d1d5db"/>
+<rect x="892" y="160" width="52" height="5" rx="2" fill="#d1d5db"/><rect x="892" y="170" width="34" height="5" rx="2" fill="#d1d5db"/>
+<circle cx="878" cy="210" r="9" fill="#d1d5db"/>
+<rect x="892" y="204" width="52" height="5" rx="2" fill="#d1d5db"/><rect x="892" y="214" width="34" height="5" rx="2" fill="#d1d5db"/>
+<circle cx="878" cy="254" r="9" fill="#d1d5db"/>
+<rect x="892" y="248" width="52" height="5" rx="2" fill="#d1d5db"/><rect x="892" y="258" width="34" height="5" rx="2" fill="#d1d5db"/>
+<rect x="956" y="52" width="138" height="26" rx="6" fill="#fff" stroke="#e5e7eb" stroke-width="1.5" />
+<text x="962" y="69" font-size="9" fill="#374151" text-anchor="start" font-weight="400">Visitor · ☑ AI replies</text>
+<rect x="960" y="90" width="90" height="22" rx="10" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1.5" />
+<rect x="1000" y="120" width="90" height="22" rx="10" fill="#eef2ff" stroke="#c7d2fe" stroke-width="1.5" />
+<rect x="1010" y="150" width="80" height="22" rx="10" fill="#9ca3af" stroke="#9ca3af" stroke-width="1.5" />
+<text x="1050" y="165" font-size="9" fill="#fff" text-anchor="middle" font-weight="400">You</text>
+<rect x="956" y="420" width="100" height="30" rx="8" fill="#fff" stroke="#d1d5db" stroke-width="1.5" />
+<text x="964" y="439" font-size="9" fill="#9ca3af" text-anchor="start" font-weight="400">Reply as Zubair…</text>
+<rect x="1060" y="420" width="34" height="30" rx="8" fill="#9ca3af" stroke="#9ca3af" stroke-width="1.5" />
+<text x="1077" y="439" font-size="8" fill="#fff" text-anchor="middle" font-weight="400">Send</text>
+<text x="980" y="490" font-size="11" fill="#6b7280" text-anchor="middle" font-weight="400">Login (JWT) · replies · push alerts</text>
+<text x="560.0" y="540" font-size="12" fill="#9ca3af" text-anchor="middle" font-weight="400">Wireframes — Zubair Chat (free, self-hosted Crisp-style live chat)</text>
+</svg>
