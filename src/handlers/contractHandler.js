@@ -1,4 +1,4 @@
-import { v4 as uuidv4 } from "uuid";
+import { escapeHtml as esc } from "../lib/sanitize.js";
 import { knowledge as k } from "../knowledge/index.js";
 
 /**
@@ -90,20 +90,20 @@ export const buildContractHTML = (contract) => `
 
     <div class="section-title">👤 Client Details</div>
     <table>
-      <tr><td>Client Name</td><td>${contract.client.name}</td></tr>
-      <tr><td>Client Email</td><td><a href="mailto:${contract.client.email}">${contract.client.email}</a></td></tr>
-      <tr><td>Timezone</td><td>${contract.client.timezone}</td></tr>
+      <tr><td>Client Name</td><td>${esc(contract.client.name)}</td></tr>
+      <tr><td>Client Email</td><td><a href="mailto:${esc(contract.client.email)}">${esc(contract.client.email)}</a></td></tr>
+      <tr><td>Timezone</td><td>${esc(contract.client.timezone)}</td></tr>
     </table>
 
     <div class="section-title">💼 Project Details</div>
     <table>
-      <tr><td>Project Title</td><td>${contract.project.title}</td></tr>
-      <tr><td>Budget</td><td class="budget">${contract.project.budget}</td></tr>
-      <tr><td>Timeline</td><td>${contract.project.timeline}</td></tr>
+      <tr><td>Project Title</td><td>${esc(contract.project.title)}</td></tr>
+      <tr><td>Budget</td><td class="budget">${esc(contract.project.budget)}</td></tr>
+      <tr><td>Timeline</td><td>${esc(contract.project.timeline)}</td></tr>
     </table>
 
     <div class="section-title">📋 Project Description</div>
-    <div class="desc">${contract.project.description.replace(/\n/g, "<br/>")}</div>
+    <div class="desc">${esc(contract.project.description).replace(/\n/g, "<br/>")}</div>
 
     <div class="terms">
       <h3>📜 Standard Terms & Conditions</h3>
