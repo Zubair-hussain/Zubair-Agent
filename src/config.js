@@ -45,6 +45,10 @@ export const config = {
   },
 
   store: {
+    // Supabase (free plan) — preferred. Server-side secret key only.
+    supabaseUrl: (env.SUPABASE_URL || "").replace(/\/+$/, ""),
+    supabaseKey: env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SECRET_KEY || "",
+    // Upstash Redis — optional alternative.
     url: env.UPSTASH_REDIS_REST_URL || env.KV_REST_API_URL || "",
     token: env.UPSTASH_REDIS_REST_TOKEN || env.KV_REST_API_TOKEN || "",
   },
@@ -75,6 +79,9 @@ export const config = {
 
 config.push.enabled = Boolean(config.push.publicKey && config.push.privateKey);
 config.email.enabled = Boolean(config.email.user && config.email.pass);
-config.store.persistent = Boolean(config.store.url && config.store.token);
+config.store.supabase = /^https:\/\/[a-z0-9-]+\.supabase\.(co|in)$/i.test(config.store.supabaseUrl) && Boolean(config.store.supabaseKey);
+config.store.upstash = Boolean(config.store.url && config.store.token);
+config.store.persistent = config.store.supabase || config.store.upstash;
+config.store.kind = config.store.supabase ? "Supabase" : config.store.upstash ? "Upstash Redis" : "in-memory";
 
 export default config;
