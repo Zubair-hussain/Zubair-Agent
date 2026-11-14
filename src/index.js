@@ -146,7 +146,7 @@ if (!process.env.VERCEL && process.env.NODE_ENV !== "test") {
   app.listen(config.port, () => {
     console.log(`Zubair AI Agent v3 listening on http://localhost:${config.port}`);
     console.log(`  Admin inbox : http://localhost:${config.port}/admin (${config.admin.enabled ? "login enabled" : "DISABLED — set JWT_SECRET + ADMIN_PASSWORD_HASH"})`);
-    console.log(`  Storage     : ${config.store.persistent ? "Upstash Redis" : "in-memory (dev only — data is lost on restart)"}`);
+    console.log(`  Storage     : ${config.store.persistent ? config.store.kind : "in-memory (dev only — data is lost on restart)"}`);
     console.log(`  Web push    : ${config.push.enabled ? "enabled" : "disabled — set VAPID keys"}`);
   });
 }
