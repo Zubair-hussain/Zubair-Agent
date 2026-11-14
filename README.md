@@ -27,7 +27,7 @@ Zubair Chat gives you the same experience on infrastructure you own:
 
 | | Zubair Chat | Typical hosted chat SaaS |
 |---|---|---|
-| Price | **Free** (MIT, runs on Vercel's free tier + Upstash free tier) | Free tier, then per-seat or per-feature plans |
+| Price | **Free** (MIT, runs on Vercel's free tier + Supabase free tier) | Free tier, then per-seat or per-feature plans |
 | AI assistant | ✅ built in, no OpenAI/Gemini bill | Usually a paid add-on |
 | Human takeover in the same thread | ✅ | ✅ |
 | Online / "replies within 1 hour" status | ✅ | ✅ |
@@ -112,11 +112,12 @@ npm run hash-password        # hidden prompt → prints ADMIN_PASSWORD_HASH
 ```
 
 1. Import the repo on Vercel.
-2. **Storage → Upstash for Redis** → connect it (adds `KV_REST_API_URL` / `KV_REST_API_TOKEN`). Required: serverless functions forget everything between requests.
+2. **Database (free):** create a project at [supabase.com](https://supabase.com), open **SQL Editor → New query**, paste [`supabase/schema.sql`](supabase/schema.sql) and click **Run**. Then copy **Project URL** and the **service_role / secret key** from **Project Settings → API**. Required: serverless functions forget everything between requests. (Upstash Redis also works via `KV_REST_API_URL` / `KV_REST_API_TOKEN`.)
 3. **Settings → Environment Variables**:
 
 | Variable | Purpose |
 |---|---|
+| `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` | database (server-only key) |
 | `ADMIN_USERNAME` | inbox login name |
 | `ADMIN_PASSWORD_HASH` | salted scrypt hash — the password itself is never stored |
 | `JWT_SECRET` | 32+ random characters; signs admin + visitor tokens |
@@ -189,9 +190,10 @@ src/
 ├── live/conversations.js  threads, messages, presence, typing
 ├── engine/                intent engine + response builder (the AI)
 ├── knowledge/kb.js        ← your profile, services, prices, FAQ
-├── lib/                   auth (JWT/scrypt), store (Upstash/memory), push, rate limit
+├── lib/                   auth (JWT/scrypt), store (Supabase/Upstash/memory), push, rate limit
 ├── admin/                 inbox UI + service worker for notifications
 └── widget/                embeddable widget, colour templates, /demo page
+supabase/schema.sql        free database setup (run once in Supabase)
 docs/                      demo GIF, wireframes, colour templates
 test/                      end-to-end security + flow tests
 ```
