@@ -1,8 +1,9 @@
 // ─────────────────────────────────────────────────────────────────────────────
-//  Storage adapter.
-//   • Production (Vercel): Upstash Redis over its REST API — serverless-safe,
-//     no sockets. Add the "Upstash for Redis" integration in Vercel and the
-//     KV_REST_API_URL / KV_REST_API_TOKEN variables appear automatically.
+//  Storage adapter — one small Redis-style interface, three backends:
+//   • Supabase (free plan, preferred): Postgres functions from
+//     supabase/schema.sql, called over Supabase's REST API. Set SUPABASE_URL
+//     and SUPABASE_SERVICE_ROLE_KEY (server-side only).
+//   • Upstash Redis (optional): set KV_REST_API_URL / KV_REST_API_TOKEN.
 //   • Local dev / tests: an in-memory fallback with the same interface.
 //
 //  Only a tiny, fixed set of Redis commands is used, and keys are always built
@@ -185,8 +186,90 @@ class UpstashStore {
   }
 }
 
-export const store = config.store.persistent
-  ? new UpstashStore(config.store.url, config.store.token)
-  : new MemoryStore();
+// ── Supabase (Postgres via the REST "rpc" endpoint) ─────────────────────────
+class SupabaseStore {
+  constructor(url, key) {
+    this.url = `${url}/rest/v1/rpc/`;
+    // New-style secret keys (sb_secret_…) go in `apikey` only; legacy
+    // service_role JWTs are also sent as the bearer token.
+    this.headers = {
+      apikey: key,
+      "Content-Type": "application/json",
+      ...(key.startsWith("sb_") ? {} : { Authorization: `Bearer ${key}` }),
+    };
+    this.persistent = true;
+  }
+
+  async #rpc(fn, args) {
+    const res = await fetch(this.url + fn, {
+      method: "POST",
+      headers: this.headers,
+      body: JSON.stringify(args),
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) throw new Error(`Store request failed (${res.status})`);
+    const text = await res.text();
+    return text ? JSON.parse(text) : null;
+  }
+
+  // Values come back as JSON; strings stay strings, counters are numbers.
+  async get(key) {
+    const v = await this.#rpc("kv_get", { p_key: key });
+    return v === null || v === undefined ? null : typeof v === "string" ? v : String(v);
+  }
+  async mget(keys) {
+    if (!keys.length) return [];
+    const list = (await this.#rpc("kv_mget", { p_keys: keys })) || [];
+    return keys.map((_, i) => (list[i] === null || list[i] === undefined ? null : String(list[i])));
+  }
+  set(key, value, ttlSeconds) {
+    return this.#rpc("kv_set", { p_key: key, p_value: String(value), p_ttl: ttlSeconds || null });
+  }
+  del(...keys) {
+    return this.#rpc("kv_del", { p_keys: keys });
+  }
+  async incr(key, ttlSeconds) {
+    return Number(await this.#rpc("kv_incr", { p_key: key, p_ttl: ttlSeconds || null }));
+  }
+  async ttl(key) {
+    return Number(await this.#rpc("kv_ttl", { p_key: key }));
+  }
+  expire(key, ttlSeconds) {
+    return this.#rpc("kv_expire", { p_key: key, p_ttl: ttlSeconds });
+  }
+  rpush(key, value, maxLength) {
+    return this.#rpc("kv_rpush", { p_key: key, p_value: String(value), p_max: maxLength || 0 });
+  }
+  async lrange(key, start, stop) {
+    return (await this.#rpc("kv_lrange", { p_key: key, p_start: start, p_stop: stop })) || [];
+  }
+  zadd(key, score, member) {
+    return this.#rpc("kv_zadd", { p_key: key, p_score: score, p_member: member });
+  }
+  zrem(key, member) {
+    return this.#rpc("kv_zrem", { p_key: key, p_member: member });
+  }
+  async zrevrange(key, start, stop) {
+    return (await this.#rpc("kv_zrevrange", { p_key: key, p_start: start, p_stop: stop })) || [];
+  }
+  hset(key, field, value) {
+    return this.#rpc("kv_hset", { p_key: key, p_field: field, p_value: String(value) });
+  }
+  hdel(key, field) {
+    return this.#rpc("kv_hdel", { p_key: key, p_field: field });
+  }
+  async hgetall(key) {
+    return (await this.#rpc("kv_hgetall", { p_key: key })) || {};
+  }
+  async hlen(key) {
+    return Number(await this.#rpc("kv_hlen", { p_key: key }));
+  }
+}
+
+export const store = config.store.supabase
+  ? new SupabaseStore(config.store.supabaseUrl, config.store.supabaseKey)
+  : config.store.upstash
+    ? new UpstashStore(config.store.url, config.store.token)
+    : new MemoryStore();
 
 export default store;
